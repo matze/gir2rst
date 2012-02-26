@@ -5,6 +5,6 @@ setup(name='gir2rst',
         scripts=['bin/gir2rst'],
         author='Matthias Vogelgesang',
         author_email='matthias.vogelgesang@gmail.com',
+        url='http://github.com/matze/gir2rst',
         license='GPL v3',
-        description='Generate ReST-based Sphinx documentation from \
-        GObject-Introspection files',)
+        description='Generate ReST-based Sphinx documentation from GIR files',)

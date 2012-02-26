@@ -1,4 +1,19 @@
 #!python
+# gir2rst - Create Sphinx documentation from GIR files
+# Copyright (C) 2012 Matthias Vogelgesang
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
 import string
@@ -91,7 +106,7 @@ class RstFormatter(object):
         pass
 
 
-class RstFormatterC(RstFormatter):
+class RstCFormatter(RstFormatter):
     def __init__(self, parser, output):
         super(RstFormatterC, self).__init__(parser, output)
 
@@ -143,7 +158,7 @@ if __name__ == '__main__':
     try:
         for filename in sys.argv[1:]:
             parser = GirParser(filename)
-            formatter = RstFormatterC(parser, sys.stdout)
+            formatter = RstCFormatter(parser, sys.stdout)
             formatter.write_rst()
     except IOError:
         print "Usage: gir2rst FILE1.gir [FILE2.gir ...]"
