@@ -17,14 +17,16 @@
 import string
 from xml.etree import ElementTree
 
+NS_CORE_PREFIX = '{http://www.gtk.org/introspection/core/1.0}'
+NS_C_PREFIX = '{http://www.gtk.org/introspection/c/1.0}'
+
 
 class GirParser(object):
     def __init__(self, filename):
-        xml = open(filename).read()
         self.tree = ElementTree.ElementTree()
         self.tree.parse(filename)
-        self.ns_core = string.Template('{http://www.gtk.org/introspection/core/1.0}$tag')
-        self.ns_c = string.Template('{http://www.gtk.org/introspection/c/1.0}$tag')
+        self.ns_core = string.Template('%s$tag' % (NS_CORE_PREFIX))
+        self.ns_c = string.Template('%s$tag' % (NS_C_PREFIX))
 
     def get_namespace(self):
         return self.tree.find(self.ns_core.substitute(tag='namespace'))
@@ -38,6 +40,8 @@ class GirParser(object):
         return class_element.attrib['name']
 
     def get_c_type_attrib(self, element):
+        if element is None:
+            return None
         return element.attrib[self.ns_c.substitute(tag='type')]
 
     def get_type(self, element):
@@ -62,5 +66,5 @@ class GirParser(object):
         return method_element.find(self.ns_core.substitute(tag='return-value'))
 
     def get_return_type(self, method_element):
-        return self.get_return_value(method_element).find(self.ns_core.substitute(tag='type'))
-
+        rvalue = self.get_return_value(method_element)
+        return rvalue.find(self.ns_core.substitute(tag='type'))

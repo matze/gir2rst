@@ -23,16 +23,18 @@ class RstFormatter(object):
     def __init__(self, filename, output):
         self.parser = gir2rst.parser.GirParser(filename)
         self.output = output
-        self.wrapper = textwrap.TextWrapper(initial_indent='    ', subsequent_indent='    ')
-        self.ns_core = string.Template('{http://www.gtk.org/introspection/core/1.0}$tag')
-        self.ns_c = string.Template('{http://www.gtk.org/introspection/c/1.0}$tag')
+        self.wrapper = textwrap.TextWrapper(initial_indent='    ',
+                subsequent_indent='    ')
+        self.ns_core = string.Template('%s$tag' %
+                gir2rst.parser.NS_CORE_PREFIX)
+        self.ns_c = string.Template('%s$tag' % gir2rst.parser.NS_C_PREFIX)
 
     def write_rst(self):
         namespace = self.parser.get_namespace()
         title = "%s %s API reference" % (namespace.attrib['name'],
                 namespace.attrib['version'])
-        self.output.write("="*len(title) + "\n" + title + "\n" + "="*len(title)
-                + "\n")
+        self.output.write("=" * len(title) + "\n" + title + "\n" + "=" *
+                len(title) + "\n")
 
         for class_element in self.parser.get_classes():
             self.output_class(class_element)
@@ -63,7 +65,7 @@ class RstCFormatter(RstFormatter):
 
     def output_class(self, class_element):
         name = self.parser.get_c_type_attrib(class_element)
-        self.output.write('\n%s\n%s\n\n' % (name, '='*len(name)))
+        self.output.write('\n%s\n%s\n\n' % (name, '=' * len(name)))
         self.output.write(".. c:type:: %s\n\n" % name)
         self.print_lines(self.parser.get_element_doc(class_element))
         self.output.write('\n\n')
@@ -78,24 +80,29 @@ class RstCFormatter(RstFormatter):
         self.output.write(".. c:function:: %s %s(" % (c_rtype, c_name))
 
         params = self.parser.get_parameters(element)
-        N = len(params)
-        for i in range(N):
-            param_type = self.parser.get_type(params[i])
-            if param_type is not None:
-                self.output.write(self.parser.get_c_type_attrib(param_type) + " ")
+        param_names = [p.attrib['name'] for p in params]
+        types = [self.parser.get_c_type_attrib(self.parser.get_type(param)) for
+                param in params]
 
-            self.output.write(params[i].attrib['name'])
-            if i < N-1:
-                self.output.write(', ')
-        self.output.write(')\n\n')
+        tokens = [', '] * len(param_names)
+        if tokens:
+            tokens[-1] = ''
+
+        zipped = zip(types, param_names, tokens)
+        self.output.write("".join(["%s %s%s" % (a, b, c) for (a, b, c) in
+            zipped]))
+        self.output.write(")\n\n")
 
         doc = self.parser.get_element_doc(element)
         if doc:
             self.print_lines(doc)
+            self.output.write('\n')
 
-        for param in params:
-            self.output.write('\n    :param %s: %s' % (param.attrib['name'],
-                self.parser.get_element_doc(param)))
+        param_descriptions = ["    :param %s: %s\n" % (p.attrib['name'],
+            self.parser.get_element_doc(p)) for p in params]
+
+        for desc in param_descriptions:
+            self.output.write(desc)
 
         rval = self.parser.get_return_value(element)
         if self.parser.get_type(rval).attrib['name'] != 'none':
@@ -103,4 +110,3 @@ class RstCFormatter(RstFormatter):
                     self.parser.get_element_doc(rval))
 
         self.output.write('\n\n')
-
