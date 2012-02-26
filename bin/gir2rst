@@ -1,0 +1,150 @@
+#!python
+
+import sys
+import string
+import textwrap
+from xml.etree import ElementTree
+
+
+class GirParser(object):
+    def __init__(self, filename):
+        xml = open(filename).read()
+        self.tree = ElementTree.ElementTree()
+        self.tree.parse(sys.argv[1])
+        self.ns_core = string.Template('{http://www.gtk.org/introspection/core/1.0}$tag')
+        self.ns_c = string.Template('{http://www.gtk.org/introspection/c/1.0}$tag')
+
+    def get_namespace(self):
+        return self.tree.find(self.ns_core.substitute(tag='namespace'))
+
+    def get_classes(self):
+        ns_tag = self.ns_core.substitute(tag='namespace')
+        class_tag = self.ns_core.substitute(tag='class')
+        return self.tree.findall('%s/%s' % (ns_tag, class_tag))
+
+    def get_class_name(self, class_element):
+        return class_element.attrib['name']
+
+    def get_c_type_attrib(self, element):
+        return element.attrib[self.ns_c.substitute(tag='type')]
+
+    def get_type(self, element):
+        return element.find(self.ns_core.substitute(tag='type'))
+
+    def get_element_doc(self, element):
+        return element.findtext(self.ns_core.substitute(tag='doc'))
+
+    def get_constructor(self, class_element):
+        return class_element.find(self.ns_core.substitute(tag='constructor'))
+
+    def get_methods(self, class_element):
+        return class_element.findall(self.ns_core.substitute(tag='method'))
+
+    def get_parameters(self, method_element):
+        parameters_tag = self.ns_core.substitute(tag='parameters')
+        parameter_tag = self.ns_core.substitute(tag='parameter')
+        return method_element.findall('%s/%s' % (parameters_tag,
+            parameter_tag))
+
+    def get_return_value(self, method_element):
+        return method_element.find(self.ns_core.substitute(tag='return-value'))
+
+    def get_return_type(self, method_element):
+        return self.get_return_value(method_element).find(self.ns_core.substitute(tag='type'))
+
+
+class RstFormatter(object):
+    def __init__(self, parser, output):
+        self.parser = parser
+        self.output = output
+        self.wrapper = textwrap.TextWrapper(initial_indent='    ', subsequent_indent='    ')
+        self.ns_core = string.Template('{http://www.gtk.org/introspection/core/1.0}$tag')
+        self.ns_c = string.Template('{http://www.gtk.org/introspection/c/1.0}$tag')
+
+    def write_rst(self):
+        namespace = self.parser.get_namespace()
+        title = "%s %s API reference" % (namespace.attrib['name'],
+                namespace.attrib['version'])
+        self.output.write("="*len(title) + "\n" + title + "\n" + "="*len(title)
+                + "\n")
+
+        for class_element in self.parser.get_classes():
+            self.output_class(class_element)
+            constructor = self.parser.get_constructor(class_element)
+            if constructor:
+                self.output_constructor(constructor)
+
+            for method in self.parser.get_methods(class_element):
+                self.output_method(method)
+
+    def print_lines(self, lines):
+        for line in self.wrapper.wrap(lines):
+            self.output.write(line + '\n')
+
+    def output_class(self, class_element):
+        pass
+
+    def output_constructor(self, element, rtype):
+        pass
+
+    def output_method(self, element, rtype):
+        pass
+
+
+class RstFormatterC(RstFormatter):
+    def __init__(self, parser, output):
+        super(RstFormatterC, self).__init__(parser, output)
+
+    def output_class(self, class_element):
+        name = self.parser.get_c_type_attrib(class_element)
+        self.output.write('\n%s\n%s\n\n' % (name, '='*len(name)))
+        self.output.write(".. c:type:: %s\n\n" % name)
+        self.print_lines(self.parser.get_element_doc(class_element))
+        self.output.write('\n\n')
+
+    def output_constructor(self, element):
+        self.output_method(element)
+
+    def output_method(self, element):
+        rtype = self.parser.get_return_type(element)
+        c_name = element.attrib[self.ns_c.substitute(tag='identifier')]
+        c_rtype = rtype.attrib[self.ns_c.substitute(tag='type')]
+        self.output.write(".. c:function:: %s %s(" % (c_rtype, c_name))
+
+        params = self.parser.get_parameters(element)
+        N = len(params)
+        for i in range(N):
+            param_type = self.parser.get_type(params[i])
+            if param_type is not None:
+                self.output.write(self.parser.get_c_type_attrib(param_type) + " ")
+
+            self.output.write(params[i].attrib['name'])
+            if i < N-1:
+                self.output.write(', ')
+        self.output.write(')\n\n')
+
+        doc = self.parser.get_element_doc(element)
+        if doc:
+            self.print_lines(doc)
+
+        for param in params:
+            self.output.write('\n    :param %s: %s' % (param.attrib['name'],
+                self.parser.get_element_doc(param)))
+
+        rval = self.parser.get_return_value(element)
+        if self.parser.get_type(rval).attrib['name'] != 'none':
+            self.output.write('\n    :returns: %s' %
+                    self.parser.get_element_doc(rval))
+
+        self.output.write('\n\n')
+
+
+if __name__ == '__main__':
+    try:
+        for filename in sys.argv[1:]:
+            parser = GirParser(filename)
+            formatter = RstFormatterC(parser, sys.stdout)
+            formatter.write_rst()
+    except IOError:
+        print "Usage: gir2rst FILE1.gir [FILE2.gir ...]"
+        sys.exit()
