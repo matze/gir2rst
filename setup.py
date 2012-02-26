@@ -11,7 +11,7 @@ CLASSIFIERS = [
     "Topic :: Text Processing :: Markup"
 ]
 
-with open('README.txt') as fp:
+with open('README.rst') as fp:
     LONG_DESCRIPTION = fp.read()
 
 setup(
