@@ -46,8 +46,9 @@ class RstFormatter(object):
                 self.output_method(method)
 
     def print_lines(self, lines):
-        for line in self.wrapper.wrap(lines):
-            self.output.write(line + '\n')
+        if lines:
+            for line in self.wrapper.wrap(lines):
+                self.output.write(line + '\n')
 
     def output_class(self, class_element):
         pass
@@ -93,10 +94,8 @@ class RstCFormatter(RstFormatter):
             zipped]))
         self.output.write(")\n\n")
 
-        doc = self.parser.get_element_doc(element)
-        if doc:
-            self.print_lines(doc)
-            self.output.write('\n')
+        self.print_lines(self.parser.get_element_doc(element))
+        self.output.write('\n')
 
         param_descriptions = ["    :param %s: %s\n" % (p.attrib['name'],
             self.parser.get_element_doc(p)) for p in params]
