@@ -16,7 +16,7 @@ with open('README.rst') as fp:
 
 setup(
     name='gir2rst', 
-    version='0.1', 
+    version='0.2', 
     packages=['gir2rst'],
     scripts=['bin/gir2rst'],
     author='Matthias Vogelgesang',
