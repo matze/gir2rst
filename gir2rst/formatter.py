@@ -19,6 +19,16 @@ import textwrap
 import gir2rst.parser
 
 
+def rst_h1(title, char='='):
+    lines = char * len(title)
+    return "%s\n%s\n%s\n\n" % (lines, title, lines)
+
+
+def rst_h2(title, char='='):
+    lines = char * len(title)
+    return "%s\n%s\n\n" % (title, lines)
+
+
 class RstFormatter(object):
     def __init__(self, filename, output):
         self.parser = gir2rst.parser.GirParser(filename)
@@ -33,8 +43,7 @@ class RstFormatter(object):
         namespace = self.parser.get_namespace()
         title = "%s %s API reference" % (namespace.attrib['name'],
                 namespace.attrib['version'])
-        self.output.write("=" * len(title) + "\n" + title + "\n" + "=" *
-                len(title) + "\n")
+        self.output.write(rst_h1(title))
 
         for class_element in self.parser.get_classes():
             self.output_class(class_element)
@@ -66,7 +75,7 @@ class RstCFormatter(RstFormatter):
 
     def output_class(self, class_element):
         name = self.parser.get_c_type_attrib(class_element)
-        self.output.write('\n%s\n%s\n\n' % (name, '=' * len(name)))
+        self.output.write(rst_h2(name))
         self.output.write(".. c:type:: %s\n\n" % name)
         self.print_lines(self.parser.get_element_doc(class_element))
         self.output.write('\n\n')
