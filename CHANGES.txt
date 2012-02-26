@@ -1,0 +1,7 @@
+ChangeLog
+=========
+
+gir2rst 0.2 (2012-02-26)
+------------------------
+
+ * Fix pip installation
