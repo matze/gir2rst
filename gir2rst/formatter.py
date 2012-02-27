@@ -69,8 +69,8 @@ class RstFormatter(object):
         pass
 
     def output_param_list(self, type_names, param_names):
-        """Output (t1 n1, t2 n2, ..., tm nm) for each (ti, ni) in the product of
-        type_names and param_names.
+        """Output (t1 n1, t2 n2, ..., tm nm) for each (ti, ni) in the product
+        of type_names and param_names.
         """
         commas = [', '] * len(param_names)
         if commas:
@@ -107,6 +107,11 @@ class RstFormatter(object):
         method."""
         self.print_lines(self.parser.get_element_doc(element))
 
+    def output_method_body(self, element):
+        self.output_doc(element)
+        self.output_param_description(element)
+        self.output_return_value(element)
+
 
 class RstCFormatter(RstFormatter):
     def __init__(self, filename, output):
@@ -119,21 +124,28 @@ class RstCFormatter(RstFormatter):
         self.output_doc(class_element)
         self.output.write('\n\n')
 
-    def output_constructor(self, class_element, ctor_element):
-        self.output_method(class_element, ctor_element)
-
-    def output_method(self, class_element, meth_element):
-        name = self.parser.get_method_c_name(meth_element)
-        rtype = self.parser.get_return_c_type(meth_element)
+    def _output_c_header(self, element):
+        name = self.parser.get_method_c_name(element)
+        rtype = self.parser.get_return_c_type(element)
         self.output.write(".. c:function:: %s %s(" % (rtype, name))
 
+    def output_constructor(self, class_element, ctor_element):
+        param_names = self.parser.get_parameter_names(ctor_element)
+        type_names = self.parser.get_parameter_c_types(ctor_element)
+
+        self._output_c_header(ctor_element)
+        self.output_param_list(type_names, param_names)
+        self.output_method_body(ctor_element)
+
+    def output_method(self, class_element, meth_element):
+        # We extend the parameter and type list with a self object as this is
+        # not listed and thus implied in the .gir files.
         class_name = self.parser.get_c_type_attrib(class_element)
         param_names = self.parser.get_parameter_names(meth_element)
         param_names.insert(0, 'self')
         type_names = self.parser.get_parameter_c_types(meth_element)
         type_names.insert(0, '%s*' % class_name)
 
+        self._output_c_header(meth_element)
         self.output_param_list(type_names, param_names)
-        self.output_doc(meth_element)
-        self.output_param_description(meth_element)
-        self.output_return_value(meth_element)
+        self.output_method_body(meth_element)
