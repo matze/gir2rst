@@ -86,6 +86,9 @@ class RstFormatter(object):
         param_descriptions = ["    :param %s: %s\n" % (p.attrib['name'],
             self.parser.get_element_doc(p)) for p in params]
 
+        if params:
+            self.output.write('\n')
+
         for desc in param_descriptions:
             self.output.write(desc)
 
@@ -96,6 +99,13 @@ class RstFormatter(object):
         if self.parser.get_type(rval).attrib['name'] != 'none':
             self.output.write('\n    :returns: %s' %
                     self.parser.get_element_doc(rval))
+            self.output.write('\n')
+        self.output.write('\n\n')
+
+    def output_doc(self, element):
+        """Output the doc element that is associated with a class or a
+        method."""
+        self.print_lines(self.parser.get_element_doc(element))
 
 
 class RstCFormatter(RstFormatter):
@@ -106,25 +116,24 @@ class RstCFormatter(RstFormatter):
         name = self.parser.get_c_type_attrib(class_element)
         self.output.write(rst_h2(name))
         self.output.write(".. c:type:: %s\n\n" % name)
-        self.print_lines(self.parser.get_element_doc(class_element))
+        self.output_doc(class_element)
         self.output.write('\n\n')
 
     def output_constructor(self, class_element, ctor_element):
         self.output_method(class_element, ctor_element)
 
     def output_method(self, class_element, meth_element):
-        c_name = self.parser.get_method_c_name(meth_element)
-        c_rtype = self.parser.get_return_c_type(meth_element)
-        self.output.write(".. c:function:: %s %s(" % (c_rtype, c_name))
+        name = self.parser.get_method_c_name(meth_element)
+        rtype = self.parser.get_return_c_type(meth_element)
+        self.output.write(".. c:function:: %s %s(" % (rtype, name))
 
+        class_name = self.parser.get_c_type_attrib(class_element)
         param_names = self.parser.get_parameter_names(meth_element)
+        param_names.insert(0, 'self')
         type_names = self.parser.get_parameter_c_types(meth_element)
+        type_names.insert(0, '%s*' % class_name)
+
         self.output_param_list(type_names, param_names)
-
-        self.print_lines(self.parser.get_element_doc(meth_element))
-        self.output.write('\n')
-
+        self.output_doc(meth_element)
         self.output_param_description(meth_element)
         self.output_return_value(meth_element)
-
-        self.output.write('\n\n')
