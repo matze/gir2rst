@@ -56,11 +56,24 @@ class GirParser(object):
     def get_methods(self, class_element):
         return class_element.findall(self.ns_core.substitute(tag='method'))
 
+    def get_method_c_name(self, meth_element):
+        return meth_element.attrib[self.ns_c.substitute(tag='identifier')]
+
     def get_parameters(self, method_element):
         parameters_tag = self.ns_core.substitute(tag='parameters')
         parameter_tag = self.ns_core.substitute(tag='parameter')
         return method_element.findall('%s/%s' % (parameters_tag,
             parameter_tag))
+
+    def get_parameter_names(self, meth_element):
+        """Build a list of strings with parameters of a method."""
+        params = self.get_parameters(meth_element)
+        return [p.attrib['name'] for p in params]
+
+    def get_parameter_c_types(self, meth_element):
+        """Build a list of strings with the types of all parameters."""
+        params = self.get_parameters(meth_element)
+        return [self.get_c_type_attrib(self.get_type(p)) for p in params]
 
     def get_return_value(self, method_element):
         return method_element.find(self.ns_core.substitute(tag='return-value'))
@@ -68,3 +81,8 @@ class GirParser(object):
     def get_return_type(self, method_element):
         rvalue = self.get_return_value(method_element)
         return rvalue.find(self.ns_core.substitute(tag='type'))
+
+    def get_return_c_type(self, meth_element):
+        """Return the string representation of the C return type."""
+        rtype = self.get_return_type(meth_element)
+        return rtype.attrib[self.ns_c.substitute(tag='type')]

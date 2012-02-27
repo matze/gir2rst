@@ -47,12 +47,12 @@ class RstFormatter(object):
 
         for class_element in self.parser.get_classes():
             self.output_class(class_element)
-            constructor = self.parser.get_constructor(class_element)
-            if constructor:
-                self.output_constructor(constructor)
+            ctor = self.parser.get_constructor(class_element)
+            if ctor:
+                self.output_constructor(class_element, ctor)
 
             for method in self.parser.get_methods(class_element):
-                self.output_method(method)
+                self.output_method(class_element, method)
 
     def print_lines(self, lines):
         if lines:
@@ -62,11 +62,40 @@ class RstFormatter(object):
     def output_class(self, class_element):
         pass
 
-    def output_constructor(self, element, rtype):
+    def output_constructor(self, class_element, ctor_element):
         pass
 
-    def output_method(self, element, rtype):
+    def output_method(self, class_element, meth_element):
         pass
+
+    def output_param_list(self, type_names, param_names):
+        """Output (t1 n1, t2 n2, ..., tm nm) for each (ti, ni) in the product of
+        type_names and param_names.
+        """
+        commas = [', '] * len(param_names)
+        if commas:
+            commas[-1] = ''
+
+        zipped = zip(type_names, param_names, commas)
+        self.output.write("".join(["%s %s%s" % t for t in zipped]))
+        self.output.write(")\n\n")
+
+    def output_param_description(self, func_element):
+        """Output parameter description like ':param foo: foo description'."""
+        params = self.parser.get_parameters(func_element)
+        param_descriptions = ["    :param %s: %s\n" % (p.attrib['name'],
+            self.parser.get_element_doc(p)) for p in params]
+
+        for desc in param_descriptions:
+            self.output.write(desc)
+
+    def output_return_value(self, meth_element):
+        """Output the return value like ':returns: return value description'.
+        """
+        rval = self.parser.get_return_value(meth_element)
+        if self.parser.get_type(rval).attrib['name'] != 'none':
+            self.output.write('\n    :returns: %s' %
+                    self.parser.get_element_doc(rval))
 
 
 class RstCFormatter(RstFormatter):
@@ -80,41 +109,22 @@ class RstCFormatter(RstFormatter):
         self.print_lines(self.parser.get_element_doc(class_element))
         self.output.write('\n\n')
 
-    def output_constructor(self, element):
-        self.output_method(element)
+    def output_constructor(self, class_element, ctor_element):
+        self.output_method(class_element, ctor_element)
 
-    def output_method(self, element):
-        rtype = self.parser.get_return_type(element)
-        c_name = element.attrib[self.ns_c.substitute(tag='identifier')]
-        c_rtype = rtype.attrib[self.ns_c.substitute(tag='type')]
+    def output_method(self, class_element, meth_element):
+        c_name = self.parser.get_method_c_name(meth_element)
+        c_rtype = self.parser.get_return_c_type(meth_element)
         self.output.write(".. c:function:: %s %s(" % (c_rtype, c_name))
 
-        params = self.parser.get_parameters(element)
-        param_names = [p.attrib['name'] for p in params]
-        types = [self.parser.get_c_type_attrib(self.parser.get_type(param)) for
-                param in params]
+        param_names = self.parser.get_parameter_names(meth_element)
+        type_names = self.parser.get_parameter_c_types(meth_element)
+        self.output_param_list(type_names, param_names)
 
-        tokens = [', '] * len(param_names)
-        if tokens:
-            tokens[-1] = ''
-
-        zipped = zip(types, param_names, tokens)
-        self.output.write("".join(["%s %s%s" % (a, b, c) for (a, b, c) in
-            zipped]))
-        self.output.write(")\n\n")
-
-        self.print_lines(self.parser.get_element_doc(element))
+        self.print_lines(self.parser.get_element_doc(meth_element))
         self.output.write('\n')
 
-        param_descriptions = ["    :param %s: %s\n" % (p.attrib['name'],
-            self.parser.get_element_doc(p)) for p in params]
-
-        for desc in param_descriptions:
-            self.output.write(desc)
-
-        rval = self.parser.get_return_value(element)
-        if self.parser.get_type(rval).attrib['name'] != 'none':
-            self.output.write('\n    :returns: %s' %
-                    self.parser.get_element_doc(rval))
+        self.output_param_description(meth_element)
+        self.output_return_value(meth_element)
 
         self.output.write('\n\n')
