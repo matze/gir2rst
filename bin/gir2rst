@@ -17,20 +17,27 @@
 
 import sys
 import gir2rst.formatter
-
-
-def usage():
-    print "Usage: gir2rst FILE1.gir [FILE2.gir ...]"
-    sys.exit()
+import argparse
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Generate Sphinx \
+            documentation from GObject Introspection GIR files.')
+
+    parser.add_argument('-o', metavar='FILE', help='write to FILE or stdout \
+            if omitted', type=str)
+    parser.add_argument('input', nargs='*', help='.gir input files')
+
     if len(sys.argv) == 1:
-        usage()
+        parser.print_usage()
+        sys.exit()
+
+    args = parser.parse_args()
+    stream = open(args.o, 'w') if args.o else sys.stdout
 
     try:
-        for filename in sys.argv[1:]:
-            formatter = gir2rst.formatter.RstCFormatter(filename, sys.stdout)
+        for filename in args.input:
+            formatter = gir2rst.formatter.RstCFormatter(filename, stream)
             formatter.write_rst()
     except IOError:
-        usage()
+        parser.print_usage()
