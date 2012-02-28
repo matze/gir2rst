@@ -14,19 +14,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import re
 import string
 import textwrap
 import gir2rst.parser
 
 
-def rst_h1(title, char='='):
+def _rst_h1(title, char='='):
     lines = char * len(title)
     return "%s\n%s\n%s\n\n" % (lines, title, lines)
 
 
-def rst_h2(title, char='='):
+def _rst_h2(title, char='='):
     lines = char * len(title)
     return "%s\n%s\n\n" % (title, lines)
+
+
+def _fix_references(s):
+    # TODO: cache the regular expressions
+    if s:
+        s = re.sub(r'\s(\w+)\(\)', r' :c:func:`\1()`', s)
+        s = re.sub(r'\s@(\w+)', r' ``\1``', s)
+        s = re.sub(r'\s#(\w+)', r' :c:type:`\1`', s)
+        s = s.replace('%NULL', '``NULL``')
+        return s
+    return None
 
 
 class RstFormatter(object):
@@ -43,7 +55,7 @@ class RstFormatter(object):
         namespace = self.parser.get_namespace()
         title = "%s %s API reference" % (namespace.attrib['name'],
                 namespace.attrib['version'])
-        self.output.write(rst_h1(title))
+        self.output.write(_rst_h1(title))
 
         for class_element in self.parser.get_classes():
             self.output_class(class_element)
@@ -84,7 +96,7 @@ class RstFormatter(object):
         """Output parameter description like ':param foo: foo description'."""
         params = self.parser.get_parameters(func_element)
         param_descriptions = ["    :param %s: %s\n" % (p.attrib['name'],
-            self.parser.get_element_doc(p)) for p in params]
+            _fix_references(self.parser.get_element_doc(p))) for p in params]
 
         if params:
             self.output.write('\n')
@@ -97,15 +109,14 @@ class RstFormatter(object):
         """
         rval = self.parser.get_return_value(meth_element)
         if self.parser.get_type(rval).attrib['name'] != 'none':
-            self.output.write('\n    :returns: %s' %
-                    self.parser.get_element_doc(rval))
-            self.output.write('\n')
+            doc = self.parser.get_element_doc(rval)
+            self.output.write('\n    :returns: %s\n' % _fix_references(doc))
         self.output.write('\n\n')
 
     def output_doc(self, element):
         """Output the doc element that is associated with a class or a
         method."""
-        self.print_lines(self.parser.get_element_doc(element))
+        pass
 
     def output_method_body(self, element):
         self.output_doc(element)
@@ -119,7 +130,7 @@ class RstCFormatter(RstFormatter):
 
     def output_class(self, class_element):
         name = self.parser.get_c_type_attrib(class_element)
-        self.output.write(rst_h2(name))
+        self.output.write(_rst_h2(name))
         self.output.write(".. c:type:: %s\n\n" % name)
         self.output_doc(class_element)
         self.output.write('\n\n')
@@ -149,3 +160,7 @@ class RstCFormatter(RstFormatter):
         self._output_c_header(meth_element)
         self.output_param_list(type_names, param_names)
         self.output_method_body(meth_element)
+
+    def output_doc(self, element):
+        doc = self.parser.get_element_doc(element)
+        self.print_lines(_fix_references(doc))
