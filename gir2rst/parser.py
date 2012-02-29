@@ -45,7 +45,12 @@ class GirParser(object):
         return element.attrib[self.ns_c.substitute(tag='type')]
 
     def get_type(self, element):
-        return element.find(self.ns_core.substitute(tag='type'))
+        basic_type = element.find(self.ns_core.substitute(tag='type'))
+        if basic_type is not None:
+            return basic_type
+
+        array_type = element.find(self.ns_core.substitute(tag='array'))
+        return array_type
 
     def get_element_doc(self, element):
         return element.findtext(self.ns_core.substitute(tag='doc'))
