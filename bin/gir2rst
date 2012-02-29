@@ -19,13 +19,15 @@ import sys
 import gir2rst.formatter
 import argparse
 
+def log_error(s):
+    print >> sys.stderr, s
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate Sphinx \
             documentation from GObject Introspection GIR files.')
 
-    parser.add_argument('-o', metavar='FILE', help='write to FILE or stdout \
-            if omitted', type=str)
+    parser.add_argument('-o', type=str, metavar='FILE',
+        help='write to FILE or stdout if omitted')
     parser.add_argument('input', nargs='*', help='.gir input files')
 
     if len(sys.argv) == 1:
@@ -33,6 +35,10 @@ if __name__ == '__main__':
         sys.exit()
 
     args = parser.parse_args()
+
+    if args.o and len(args.input) > 1:
+        log_error("Warning: %s will be overwritten for each input" % (args.o))
+
     stream = open(args.o, 'w') if args.o else sys.stdout
 
     try:
