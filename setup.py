@@ -1,4 +1,5 @@
 from distutils.core import setup
+import gir2rst
 
 CLASSIFIERS = [
     "Development Status :: 4 - Beta",
@@ -16,7 +17,7 @@ with open('README.rst') as fp:
 
 setup(
     name='gir2rst', 
-    version='0.4', 
+    version=gir2rst.__version__,
     packages=['gir2rst'],
     scripts=['bin/gir2rst'],
     author='Matthias Vogelgesang',

@@ -16,8 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import gir2rst
 import gir2rst.formatter
 import argparse
+
 
 def log_error(s):
     print >> sys.stderr, s
@@ -26,6 +28,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate Sphinx \
             documentation from GObject Introspection GIR files.')
 
+    parser.add_argument('--version', action='version', version='gir2rst %s' %
+            gir2rst.__version__)
     parser.add_argument('-o', type=str, metavar='FILE',
         help='write to FILE or stdout if omitted')
     parser.add_argument('input', nargs='*', help='.gir input files')
