@@ -73,7 +73,7 @@ class GirParser(object):
     def get_parameter_names(self, meth_element):
         """Build a list of strings with parameters of a method."""
         params = self.get_parameters(meth_element)
-        return [p.attrib['name'] for p in params]
+        return [p.attrib['name'] for p in params if 'name' in p.attrib]
 
     def get_parameter_c_types(self, meth_element):
         """Build a list of strings with the types of all parameters."""
@@ -90,4 +90,7 @@ class GirParser(object):
     def get_return_c_type(self, meth_element):
         """Return the string representation of the C return type."""
         rtype = self.get_return_type(meth_element)
-        return rtype.attrib[self.ns_c.substitute(tag='type')]
+        if rtype is not None:
+            return rtype.attrib[self.ns_c.substitute(tag='type')]
+        else:
+            return None

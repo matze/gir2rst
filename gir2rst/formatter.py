@@ -96,7 +96,8 @@ class RstFormatter(object):
         """Output parameter description like ':param foo: foo description'."""
         params = self.parser.get_parameters(func_element)
         param_descriptions = ["    :param %s: %s\n" % (p.attrib['name'],
-            _fix_references(self.parser.get_element_doc(p))) for p in params]
+            _fix_references(self.parser.get_element_doc(p))) for p in params if
+            'name' in p.attrib]
 
         if params:
             self.output.write('\n')
@@ -108,7 +109,8 @@ class RstFormatter(object):
         """Output the return value like ':returns: return value description'.
         """
         rval = self.parser.get_return_value(meth_element)
-        if self.parser.get_type(rval).attrib['name'] != 'none':
+        rval_type = self.parser.get_type(rval)
+        if 'name' in rval_type.attrib and rval_type.attrib['name'] != 'none':
             doc = self.parser.get_element_doc(rval)
             self.output.write('\n    :returns: %s\n' % _fix_references(doc))
         self.output.write('\n\n')
