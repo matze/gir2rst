@@ -16,9 +16,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
+import re
+import argparse
 import gir2rst
 import gir2rst.formatter
-import argparse
 
 
 def log_error(s):
@@ -30,8 +31,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--version', action='version', version='gir2rst %s' %
             gir2rst.__version__)
+    parser.add_argument('-t', type=str, metavar='TITLE',
+            help="override the title [available variables: #version \
+                    (escape with '\\')]")
     parser.add_argument('-o', type=str, metavar='FILE',
-        help='write to FILE or stdout if omitted')
+            help='write to FILE or stdout if omitted')
     parser.add_argument('input', nargs='*', help='.gir input files')
 
     if len(sys.argv) == 1:
@@ -40,6 +44,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    title = None
+    if args.t:
+        title = re.sub(r'([^\\])#version', r'\1%(version)s', args.t)
+
     if args.o and len(args.input) > 1:
         log_error("Warning: %s will be overwritten for each input" % (args.o))
 
@@ -47,7 +55,8 @@ if __name__ == '__main__':
 
     try:
         for filename in args.input:
-            formatter = gir2rst.formatter.RstCFormatter(filename, stream)
+            formatter = gir2rst.formatter.RstCFormatter(filename, stream,
+                    title)
             formatter.write_rst()
     except IOError:
         parser.print_usage()

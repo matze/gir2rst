@@ -42,9 +42,10 @@ def _fix_references(s):
 
 
 class RstFormatter(object):
-    def __init__(self, filename, output):
+    def __init__(self, filename, output, title=None):
         self.parser = gir2rst.parser.GirParser(filename)
         self.output = output
+        self.title = title
         self.wrapper = textwrap.TextWrapper(initial_indent='    ',
                 subsequent_indent='    ')
         self.ns_core = string.Template('%s$tag' %
@@ -53,9 +54,12 @@ class RstFormatter(object):
 
     def write_rst(self):
         namespace = self.parser.get_namespace()
-        title = "%s %s API reference" % (namespace.attrib['name'],
-                namespace.attrib['version'])
-        self.output.write(_rst_h1(title))
+        if self.title:
+            self.output.write(_rst_h1(self.title % namespace.attrib))
+        else:
+            title = "%s %s API reference" % (namespace.attrib['name'],
+                    namespace.attrib['version'])
+            self.output.write(_rst_h1(title))
 
         for class_element in self.parser.get_classes():
             self.output_class(class_element)
@@ -127,8 +131,8 @@ class RstFormatter(object):
 
 
 class RstCFormatter(RstFormatter):
-    def __init__(self, filename, output):
-        super(RstCFormatter, self).__init__(filename, output)
+    def __init__(self, filename, output, title=None):
+        super(RstCFormatter, self).__init__(filename, output, title)
 
     def output_class(self, class_element):
         name = self.parser.get_c_type_attrib(class_element)
